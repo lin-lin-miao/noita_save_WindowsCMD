@@ -18,6 +18,8 @@ echo 不要在备份时退出此脚本
 echo 还原时会覆盖未备份的存档 
 echo 此脚本不保证存档数据完整,请保留额外备份 
 echo 存储路径为此脚本路径中save文件夹 
+echo github地址 
+echo https://github.com/lin-lin-miao/noita_save_WindowsCMD 
 echo by-靈凛 
 
 
