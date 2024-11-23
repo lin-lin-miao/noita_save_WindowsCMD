@@ -6,7 +6,7 @@ setlocal
 
 set "script_dir=%~dp0"
 set "backup_path_save=%script_dir%save\"
-set "source_folder=C:\Users\%USERNAME%\AppData\LocalLow\Nolla_Games_Noita\save00\"
+set "source_folder=%USERPROFILE%\AppData\LocalLow\Nolla_Games_Noita\save00\"
 
 :sst
 cls
@@ -26,15 +26,18 @@ echo by-靈凛
 :sta
 title Noita存档器(by-靈凛) 
 echo --------------- 
-echo 1备份,2还原,3删除,4脚本信息,0退出 
+echo 1备份,2还原,3删除,4脚本信息,5/S启动游戏,0退出 
 set input=
 set /p input="请选择对应数字编号:"
 cls
 if "%input%"=="0" exit
-if "%input%"=="1" goto bf
+if "%input%"=="1" goto jc_rw
 if "%input%"=="2" goto hy
 if "%input%"=="3" goto de
 if "%input%"=="4" goto sst
+if "%input%"=="5" goto qd
+if "%input%"=="s" goto qd
+if "%input%"=="S" goto qd
 echo 请重新输入
 goto sta
 
@@ -55,6 +58,33 @@ mkdir "%backup_path%"
 xcopy "%source_folder%" "%backup_path%" /E /Y /H /R
 echo 备份完成,备份文件夹路径:%backup_path% 
 goto sta
+
+:jc_rw
+if not exist "%source_folder%player.xml" (
+    echo 人物存档不存在
+    set xzrw=
+    set /p xzrw="是否继续(1是):"
+    if "!xzrw!"=="1" (
+        set "xzsj=1"
+        goto bf
+    )
+    goto sta
+)
+goto jc_sj
+
+:jc_sj
+if not exist "%source_folder%world\.autosave_*" (
+    echo 世界自动存档不存在,可能为创建了新游戏并未游玩一段时间
+    set xzsj=
+    set /p xzsj="是否继续(1是):"
+    if "!xzsj!"=="1" (
+        goto bf
+    )
+    set "xzsj=0"
+    goto sta
+)
+set "xzsj=1"
+goto bf
 
 :hy
 title Noita存档器(by-靈凛) 还原: 
@@ -92,5 +122,36 @@ set "backup_path=%script_dir%save\%ide%\"
 rd /s /q "%backup_path%"
 echo 已删除 
 goto sta
+
+:qd
+set /a qdjsq=0
+tasklist|find "noita.exe" >nul
+if %errorlevel%==0 (
+    echo 游戏正在运行
+    goto sta
+)
+:qdz
+echo 正在启动游戏...
+tasklist|find "noita.exe" >nul
+if %errorlevel%==0 (
+    echo 启动完成
+    goto sta
+)
+start steam://rungameid/881100
+timeout /t 5 >nul
+tasklist|find "noita.exe" >nul
+if %errorlevel%==0 (
+    echo 启动完成
+    goto sta
+)
+set /a qdjsq+=1
+echo 已尝试!qdjsq!次
+if !qdjsq!==6 (
+    echo 启动失败,可能是steam误判游戏正在运行,请手动停止运行
+    goto sta
+)
+echo 游戏未启动,正在再次尝试
+goto qdz
+
 endlocal
 pause
