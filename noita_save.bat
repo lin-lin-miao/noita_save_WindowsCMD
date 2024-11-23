@@ -20,24 +20,28 @@ echo 此脚本不保证存档数据完整,请保留额外备份
 echo 存储路径为此脚本路径中save文件夹 
 echo github地址 
 echo https://github.com/lin-lin-miao/noita_save_WindowsCMD 
+echo ⭐️觉得好用点个星星⭐️ 
 echo by-靈凛 
 
 
 :sta
 title Noita存档器(by-靈凛) 
 echo --------------- 
-echo 1备份,2还原,3删除,4脚本信息,5/S启动游戏,0退出 
+echo 1备份,2还原,3删除,4/S启动游戏,9脚本信息,0退出 
 set input=
 set /p input="请选择对应数字编号:"
 cls
 if "%input%"=="0" exit
+
 if "%input%"=="1" goto jc_rw
 if "%input%"=="2" goto hy
 if "%input%"=="3" goto de
-if "%input%"=="4" goto sst
-if "%input%"=="5" goto qd
+
+if "%input%"=="4" goto qd
 if "%input%"=="s" goto qd
 if "%input%"=="S" goto qd
+
+if "%input%"=="9" goto sst
 echo 请重新输入
 goto sta
 
@@ -53,10 +57,19 @@ if "%ibf%"=="" (
     goto bf
 )
 set "backup_path=%script_dir%save\%ibf%\"
-rd /s /q "%backup_path%"
-mkdir "%backup_path%"
-xcopy "%source_folder%" "%backup_path%" /E /Y /H /R
-echo 备份完成,备份文件夹路径:%backup_path% 
+rd /s /q "!backup_path!"
+mkdir "!backup_path!"
+xcopy "%source_folder%" "!backup_path!" /E /Y /H /R
+if %errorlevel%==0 (
+    echo 备份文件夹路径:!backup_path! 
+    echo 备份完成
+    echo ---------------
+    set iqd=
+    set /p iqd="是否直接启动游戏(1是):"
+    if "%iqd%"=="1" goto qd
+) else (
+    echo 备份失败:(%errorlevel%)
+)
 goto sta
 
 :jc_rw
@@ -98,13 +111,23 @@ if "%ihy%"=="" (
     goto hy
 )
 set "backup_path=%script_dir%save\%ihy%\"
-if not exist "%backup_path%" (
+if not exist "!backup_path!" (
     echo 文件不存在,请重新输入 
     goto hy
 )
 rd /s /q "%source_folder%"
-xcopy "%backup_path%" "%source_folder%" /E /Y /H /R
-echo 还原完成,从备份文件夹:%backup_path% 还原到文件夹:%source_folder% 
+xcopy "!backup_path!" "%source_folder%" /E /Y /H /R
+if %errorlevel%==0 (
+    echo 从备份文件夹:!backup_path! 还原到文件夹:%source_folder% 
+    echo 还原完成
+    echo ---------------
+    set iqd=
+    set /p iqd="是否直接启动游戏(1是):"
+    if "%iqd%"=="1" goto qd
+) else (
+    echo 还原失败:%errorlevel%
+)
+
 goto sta
 
 :de
@@ -119,11 +142,13 @@ if "%ide%"=="" (
     goto de
 )
 set "backup_path=%script_dir%save\%ide%\"
-rd /s /q "%backup_path%"
+rd /s /q "!backup_path!"
 echo 已删除 
+
 goto sta
 
 :qd
+title Noita存档器(by-靈凛) 启动游戏: 
 set /a qdjsq=0
 tasklist|find "noita.exe" >nul
 if %errorlevel%==0 (
