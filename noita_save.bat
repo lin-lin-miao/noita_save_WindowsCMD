@@ -3,10 +3,21 @@ chcp 65001 >nul
 SETLOCAL EnableDelayedExpansion
 setlocal
 
+set "tab=	"
 
 set "script_dir=%~dp0"
-set "backup_path_save=%script_dir%save\"
+set "backup_path_save=%script_dir%save"
 set "source_folder=%USERPROFILE%\AppData\LocalLow\Nolla_Games_Noita\save00\"
+set "config=noita_save_config.txt"
+
+for /f "usebackq tokens=1,2 delims==" %%a in (%config%) do (
+    set "%%a=%%b"
+    echo %%a=%%b
+)
+if "%debug%"=="1" (
+    pause
+)
+
 
 :sst
 cls
@@ -27,13 +38,16 @@ echo by-靈凛
 :sta
 title Noita存档器(by-靈凛) 
 echo --------------- 
-echo 1备份,2还原,3删除,4/S启动游戏,9脚本信息,0退出 
+echo 1备份,2还原,3删除,4/S启动游戏,8设置,9脚本信息,0退出 
 set input=
 set /p input="请选择对应数字编号:"
 cls
-if "%input%"=="0" exit
+if "%input%"=="0" (
+    endlocal
+    exit
+)
 
-if "%input%"=="1" goto jc_rw
+if "%input%"=="1" goto bf
 if "%input%"=="2" goto hy
 if "%input%"=="3" goto de
 
@@ -41,14 +55,23 @@ if "%input%"=="4" goto qd
 if "%input%"=="s" goto qd
 if "%input%"=="S" goto qd
 
+if "%input%"=="8" goto setting
 if "%input%"=="9" goto sst
 echo 请重新输入
 goto sta
 
+:setting
+echo 在施工
+goto sta
+
 :bf
 title Noita存档器(by-靈凛) 备份: 
-echo 已保存的存档号(相同的将覆盖): 
-for /d %%i in (%backup_path_save%*) do echo %%~ni
+rem 存档检查
+call :jc_rw
+call :jc_sj
+
+call :showdir (相同的将覆盖)
+
 set ibf=
 set /p ibf="请输入数字存档号(0退出):"
 if "%ibf%"=="0" goto sta
@@ -64,45 +87,17 @@ if %errorlevel%==0 (
     echo 备份文件夹路径:!backup_path! 
     echo 备份完成
     echo ---------------
-    set iqd=
-    set /p iqd="是否直接启动游戏(1是):"
-    if "%iqd%"=="1" goto qd
+    call :is_qd
 ) else (
     echo 备份失败:(%errorlevel%)
 )
 goto sta
 
-:jc_rw
-if not exist "%source_folder%player.xml" (
-    echo 人物存档不存在
-    set xzrw=
-    set /p xzrw="是否继续(1是):"
-    if "!xzrw!"=="1" (
-        set "xzsj=1"
-        goto bf
-    )
-    goto sta
-)
-goto jc_sj
 
-:jc_sj
-if not exist "%source_folder%world\.autosave_*" (
-    echo 世界自动存档不存在,可能为创建了新游戏并未游玩一段时间
-    set xzsj=
-    set /p xzsj="是否继续(1是):"
-    if "!xzsj!"=="1" (
-        goto bf
-    )
-    set "xzsj=0"
-    goto sta
-)
-set "xzsj=1"
-goto bf
 
 :hy
 title Noita存档器(by-靈凛) 还原: 
-echo 已保存的存档号: 
-for /d %%i in (%backup_path_save%*) do echo %%~ni
+call :showdir
 set ihy=
 set /p ihy="请输入还原的存档号(0退出):"
 if "%ihy%"=="0" goto sta
@@ -121,9 +116,7 @@ if %errorlevel%==0 (
     echo 从备份文件夹:!backup_path! 还原到文件夹:%source_folder% 
     echo 还原完成
     echo ---------------
-    set iqd=
-    set /p iqd="是否直接启动游戏(1是):"
-    if "%iqd%"=="1" goto qd
+    call :is_qd
 ) else (
     echo 还原失败:%errorlevel%
 )
@@ -132,8 +125,7 @@ goto sta
 
 :de
 title Noita存档器(by-靈凛) 删除: 
-echo 已保存的存档号: 
-for /d %%i in (%backup_path_save%*) do echo %%~ni
+call :showdir
 set ide=
 set /p ide="请输入需要删除的存档号(0退出):"
 if "%ide%"=="0" goto sta
@@ -178,5 +170,76 @@ if !qdjsq!==6 (
 echo 游戏未启动,正在再次尝试
 goto qdz
 
-endlocal
+rem 函数
+
+:is_qd
+if "%自动启动%"=="1" goto qd
+if "%自动启动%"=="2" (
+    echo 跳过启动
+    goto :eof
+)
+set iqd=
+set /p iqd="是否直接启动游戏(1是):"
+if "%iqd%"=="1" goto qd
+goto :eof
+
+:jc_rw
+if not exist "%source_folder%player.xml" (
+    echo 人物存档不存在
+    set xzrw=
+    set /p xzrw="是否继续(1是):"
+    if "!xzrw!"=="1" (
+        goto :eof
+    )
+    goto sta
+)
+goto :eof
+
+:jc_sj
+if not exist "%source_folder%world\.autosave_*" (
+    echo 世界自动存档不存在,可能为创建了新游戏并未游玩一段时间
+    set xzsj=
+    set /p xzsj="是否继续(1是):"
+    if "!xzsj!"=="1" (
+        goto :eof
+    )
+    goto sta
+)
+goto :eof
+
+:showdir
+echo 已保存的存档号:%1
+for /f "tokens=1,2,3 delims= " %%a in ('forfiles /P "%backup_path_save%" /C "cmd /c echo @fdate @ftime @fname" ^| sort /+1') do (
+    set "cc=%%c"
+    set "cc=!cc:"=!"
+    echo !cc!%tab%%%a%tab%%%b
+)
+goto :eof
+
+:setconfig
+set "config_lines="
+set "fand_c=0"
+for /f "usebackq tokens=1,2 delims==" %%i in (%config%) do (
+    echo ci %%i=%%j in %1=%2
+    if "%%i"=="%1" (
+        REM 替换为新的键值对
+        set "line=%%i=%2"
+        set "fand_c=1"
+    ) else (
+        set "line=%%i=%%j"
+    )
+    echo !line!>> %config%n
+)
+if "!fand_c!"=="0" (
+   set "line=%1=%2"
+   echo !line! >> %config%n
+)
+move %config%n %config%
+if "%debug%"=="1" (
+    pause
+)
+goto :eof
+
 pause
+endlocal
+
